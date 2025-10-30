@@ -1,17 +1,11 @@
-hi = filter(day1, bullish_fvg == TRUE)
-hi = hi[1,]
-
-hi
-
-
 analyze_bull_fvg_one_to_one <- function(hi, day1){
   high = hi$high
   number = hi$number
   hi$number
-  l = (number+1):nrow(day1)
-  g = day1[l,]
-  a = high > g$low
-  ab = g[a,]
+  end = (number+1):nrow(day1)
+  end_of_day = day1[end,]
+  end_true = high > end_of_day$low
+  ab = end_of_day[end_true,]
   nrow(ab)
   if (nrow(ab) == 0 | nrow(ab) == 1){
     print("A")
@@ -100,16 +94,6 @@ analyze_bull_fvg_one_to_one_return_type <- function(hi, day1){
   #otherwise tp
   return("E")
 }
-
-
-hi = filter(day1, bullish_fvg == TRUE)
-hi
-hi = hi[1,]
-day1
-hi
-
-target_plot(day1, hi)
-analyze_bull_fvg_one_to_one_return_type(hi, day1)
 
 analyze_bull_fvg_extract_box <- function(hi, day1){
   high = hi$high
