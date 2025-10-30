@@ -34,7 +34,7 @@ head(stock_data)
 hi <- stock_data %>%
   mutate(group = (row_number() - 1) %/% 5) %>%
   group_by(group) %>%
-  summarise(
+  reframe(
     timestamp = first(timestamp),   # take timestamp from first row
     open      = first(open),        # open = first open
     high      = max(high),          # high = max in group
@@ -123,3 +123,16 @@ plt + geom_histogram(aes(fvg_size))
 plt + geom_histogram(aes(volume))
 plt + geom_histogram(aes(fvg_size_p))
 
+
+hi_fvg$number = 1:nrow(hi_fvg)
+
+x = hi_fvg %>% 
+  filter(bearish_fvg == TRUE)
+
+y = hi_fvg %>% 
+  filter(bullish_fvg == TRUE)
+
+fvg_analysis_bull = data.frame(low = y$lag2_high, high = y$plus1low, time = y$timestamp, number = y$number)
+fvg_analysis_bear = data.frame(low = x$plus1high, high = x$lag2_low, time = x$timestamp, number = x$number)
+
+fvg_analysis_bear
