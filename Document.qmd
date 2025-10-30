@@ -1,0 +1,166 @@
+---
+title: "FVG Setup"
+format: html
+editor: visual
+---
+
+```{r echo = T, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(quantmod)
+```
+
+# Downloading data
+
+The data is taken from the alpaca library using python. It is saved as a csv file and is ready to be loaded in.
+
+```{r}
+stock_data = read.csv("stock_data_2025.csv")
+```
+
+# EDA
+
+Glimpse at the structure and basic information about the dataset
+
+```{r}
+glimpse(stock_data)
+dim(stock_data)
+colnames(stock_data)
+summary(stock_data)
+str(stock_data)
+```
+
+# Data Cleanup
+
+Several columns such as symbol, trade_count, and VWAP, are unnecessary in the analysis, so we drop the columns.
+
+```{r}
+
+stock_data = stock_data[, c(-1, -8, -9)]
+
+```
+
+The data is originally 24/7 data for the S and P 500. However, we are only looking at the FVGs that form during the trading day. So, we want to filter out data from the weekends and from afterhours. The first step is to convert the data into timestamp data, which is easier to work with and filter. 
+
+```{r}
+
+stock_data = mutate(stock_data, hour = hour(timestamp))
+stock_data$timestamp <- ymd_hms(stock_data$timestamp, tz = "UTC")
+stock_data$timestamp <- with_tz(stock_data$timestamp, tzone = "America/New_York")
+
+```
+
+After converting the data into timestamp data, we want to filter it by first converting it into minute data and then filtering for the minutes between 9:30 and 4:00.
+
+```{r}
+#convert the data into minute by minute data
+stock_data$hour = as.integer(stock_data$hour)*60
+stock_data$hour = as.integer(minute(stock_data$timestamp)) + stock_data$hour
+#filter the data for times over 9:30
+stock_data = dplyr::filter(stock_data, hour >= (9*60+30) & hour <= 16*60)
+```
+
+Check that the 24/7 hour data has succesfully been reduced to market hours
+
+```{r}
+stock_data$hour[1:10]
+ggplot(stock_data) + 
+  geom_histogram(aes(hour), bins = 60, fill = "white") + 
+  labs(
+    title = "Minute by Minute Distribution of Data",
+    y = "Count", 
+    x = "Time"
+  )
+
+```
+
+We want to group the data into 5 minute intervals because FVGs are more likely to be valid on the five minute time frame
+
+```{r}
+
+hi <- stock_data %>%
+  mutate(group = (row_number() - 1) %/% 5) %>%
+  group_by(group) %>%
+  reframe(
+    timestamp = first(timestamp),   
+    open      = first(open),    
+    high      = max(high),       
+    low       = min(low),        
+    close     = last(close),      
+    volume    = sum(volume),        
+    hour,
+    .groups   = "drop"
+  )
+
+hi <- hi %>%
+  group_by(group = (row_number() - 1) %/% 5) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+head(hi)
+
+```
+
+# Create and Analyze FVGs
+
+Create a modified dataset that includes the data necessary for an FVG. This includes lag2_high and lag2_low, which are necessary to compute an FVG, plus1low and plus1high, which are the current low and high, and bullish_fvg and bearish_fvg which define the fvg.
+
+```{r}
+
+hi = mutate(hi, date = date(timestamp))
+
+hi_fvg = mutate(
+  hi,
+  lag2_high = lag(high, 2),
+  lag2_low  = lag(low, 2),
+  plus1low = low,
+  plus1high = high,
+  bullish_fvg = ifelse(!is.na(lag2_high) & low > lag2_high & lag(date, 2) == date, TRUE, FALSE),
+  bearish_fvg = ifelse(!is.na(lag2_low) & high < lag2_low & lag(date, 2) == date, TRUE, FALSE)
+)
+
+```
+
+Adds information about the fvg size, which is important for better understanding and filtering FVGs
+
+```{r}
+
+hi_fvg <- mutate(
+  hi_fvg,
+  bullish_fvg_size = ifelse(bullish_fvg, low - lag2_high, NA),
+  bearish_fvg_size = ifelse(bearish_fvg, lag2_low - high, NA)
+)
+
+```
+
+Move all of the data one spot back in order to properly align it with the actual FVG location
+
+```{r}
+hi_fvg$bearish_fvg = c(hi_fvg$bearish_fvg[-1], FALSE)
+hi_fvg$bullish_fvg = c(hi_fvg$bullish_fvg[-1], FALSE)
+hi_fvg$bearish_fvg_size = c(hi_fvg$bearish_fvg_size[-1], FALSE)
+hi_fvg$bullish_fvg_size = c(hi_fvg$bullish_fvg_size[-1], FALSE)
+```
+
+Set all the NAs to 0 in preparation for combining them
+
+```{r}
+hi_fvg$bullish_fvg_size[is.na(hi_fvg$bullish_fvg_size)] = 0
+hi_fvg$bearish_fvg_size[is.na(hi_fvg$bearish_fvg_size)] = 0
+hi_fvg$fvg_size = hi_fvg$bearish_fvg_size + hi_fvg$bullish_fvg_size
+
+```
+
+Create an FVG percentage column to filter for FVGs that are too small. After all, FVGs are meant to work by creating major market movements. Tiny FVGs thus do not create major market movements and are a product of noise
+
+```{r}
+
+hi_fvg = mutate(hi_fvg, fvg_size_p = fvg_size/abs(low - high))
+hi_fvg$bullish_fvg[hi_fvg$fvg_size_p < 0.33] = FALSE
+hi_fvg$bearish_fvg[hi_fvg$fvg_size_p < 0.33] = FALSE
+
+```
+
+# FVG EDA
+
