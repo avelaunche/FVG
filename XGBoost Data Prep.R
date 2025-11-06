@@ -4,6 +4,7 @@ library(ranger)
 library(xgboost)
 library(caret)
 library(forcats)
+library(ROCR)
 
 dim(hi_fvg)
 
@@ -241,6 +242,30 @@ confusionMatrix(
   factor(as.numeric(y_test), levels = c(1, 2))
 )
 
+
+pred_prob <- predict(xgb_model, X_test)
+
+pred_prob
+
+pred_rocr <- prediction(pred_prob, y_test)
+
+# Calculate TPR/FPR for ROC
+perf_roc <- performance(pred_rocr, measure = "tpr", x.measure = "fpr")
+
+# Plot the ROC curve
+plot(perf_roc, col = "blue", lwd = 2)
+abline(a = 0, b = 1, lty = 2, col = "gray")
+title("ROC Curve for XGBoost Model")
+
+# Calculate AUC
+auc_perf <- performance(pred_rocr, measure = "auc")
+auc_value <- auc_perf@y.values[[1]]
+auc_value
+
+
+
+
+
 dim(bullish_fvg_dataframe_xgboost)
 
 ggplot(bullish_fvg_dataframe_xgboost, aes(fvg_size_p)) + 
@@ -268,3 +293,4 @@ ggplot(bullish_fvg_dataframe_xgboost, aes(hour)) +
 
 ggplot(bullish_fvg_dataframe_xgboost, aes(hour, fill = y)) + 
   geom_bar(position = "fill")
+

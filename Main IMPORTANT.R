@@ -117,8 +117,6 @@ ggplot(fv_true, aes(minutetime)) +
 true_df = data.frame(time = NA, group = NA)
 count = 0
 
-res = c()
-
 for (x in 1:length(unique(fvg_analysis_bull$date))){
   z = (unique(fvg_analysis_bull$date)[x])
   day2 = filter(hi_fvg, date == z)
@@ -194,7 +192,7 @@ ggplot(true_df2, aes(close - open)) +
 ggplot(true_df2, aes(close - open)) + 
   geom_boxplot()
 
-res = c()
+res_type = c()
 
 for (x in 1:length(unique(fvg_analysis_bull$date))){
   z = (unique(fvg_analysis_bull$date)[x])
@@ -213,7 +211,7 @@ for (x in 1:length(unique(fvg_analysis_bull$date))){
     count = count + 1
     print(count)
     #fvg_analysis_bear$result[count] = result
-    res = c(res, result)
+    res_type = c(res_type, result)
   }
 }
 
@@ -222,16 +220,16 @@ for (x in 1:length(unique(fvg_analysis_bull$date))){
 #C means tp never hit
 #D means stoploss hit before tp
 #E means success
-table(res)
-fvg_analysis_bull$results = res
+table(res_type)
+fvg_analysis_bull$results = res_type
 
 ggplot(fvg_analysis_bull, aes(hour, fill = results)) + 
   geom_bar(position = 'fill')
 
-ggplot(fvg_analysis_bull, aes(weekdays, fill = res)) + 
+ggplot(fvg_analysis_bull, aes(weekdays, fill = res_type)) + 
   geom_bar(position = 'fill')
 
-ggplot(fvg_analysis_bull, aes(month, fill = res)) + 
+ggplot(fvg_analysis_bull, aes(month, fill = res_type)) + 
   geom_bar(position = 'fill')
 
 

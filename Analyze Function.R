@@ -1,4 +1,4 @@
-analyze_function_bear_fvg <- function(hi, day1){
+analyze_function_bull_fvg <- function(hi, day1){
   high = hi$high
   number = hi$number
   hi$number
@@ -20,7 +20,7 @@ analyze_function_bear_fvg <- function(hi, day1){
   
   diff = hi$close - hi$open
   
-  break_above = day1left$timestamp[day1left$high > (hi$high)]
+  break_above = day1left$timestamp[day1left$high > (hi$high )]
   break_above
   break_above = break_above[1:length(break_above)]
   
