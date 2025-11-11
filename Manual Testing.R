@@ -8,8 +8,8 @@ dates = unique(fvg_analysis_bull$date)
 hi_fvg$date
 dates
 dates[1]
-
-for (x in 27){
+hi = a[y,]
+for (x in 41){
   b = c()
   day1 = filter(hi_fvg, date == dates[x])
   print(day1)

@@ -14,6 +14,7 @@ analyze_bull_fvg_one_to_one <- function(hi, day1){
   ab
   IMPORTANT = ab[2,]
 
+  IMPORTANT
   day1left = day1[IMPORTANT$number:nrow(day1),]
   break_through = day1left$timestamp[day1left$low < hi$low]
   break_through
