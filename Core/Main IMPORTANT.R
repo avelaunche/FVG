@@ -102,8 +102,6 @@ ggplot(fvg_analysis_bull, aes(month, fill = results)) +
   geom_bar(position = 'fill')
 
 
-
-
 fv_true = fvg_analysis_bull[res,]
 
 fv_true$minutetime = hour(fv_true$time)
@@ -113,6 +111,11 @@ ggplot(fv_true, aes(date)) +
 
 ggplot(fv_true, aes(minutetime)) + 
   geom_histogram()
+
+
+
+
+
 
 true_df = data.frame(time = NA, group = NA)
 count = 0
@@ -141,8 +144,6 @@ for (x in 1:length(unique(fvg_analysis_bull$date))){
   }
 }
 
-
-
 true_df
 dim(true_df)
 ggplot(true_df, aes(time)) + 
@@ -164,6 +165,7 @@ true_df3 = true_df2 |>
   group_by(group) |>
   summarise(n = n(), max = max(high), min = min(low), size = max - min, depth = first(high) - min(low))
 
+#analysis
 ggplot(true_df3, aes(n)) + 
   geom_histogram(bins = 20)
 
@@ -192,6 +194,10 @@ ggplot(true_df2, aes(close - open)) +
 ggplot(true_df2, aes(close - open)) + 
   geom_boxplot()
 
+
+
+
+
 res_type = c()
 
 for (x in 1:length(unique(fvg_analysis_bull$date))){
@@ -214,6 +220,7 @@ for (x in 1:length(unique(fvg_analysis_bull$date))){
     res_type = c(res_type, result)
   }
 }
+table(res_type)
 
 #A means no trade
 #B means stop loss never hit 
@@ -234,3 +241,74 @@ ggplot(fvg_analysis_bull, aes(month, fill = res_type)) +
 
 
 
+
+
+
+false_df = data.frame(time = NA, group = NA)
+count = 0
+
+for (x in 1:length(unique(fvg_analysis_bull$date))){
+  z = (unique(fvg_analysis_bull$date)[x])
+  day2 = filter(hi_fvg, date == z)
+  day2$number = 1:nrow(day2)
+  day = filter(day2, bullish_fvg == TRUE)
+
+  for (y in 1:nrow(day)){
+    count = count + 1
+    hi = day[y,]
+    result = analyze_bull_fvg_extract_box_false(hi, day2)
+    if (typeof(result) == "double"){
+      result = data.frame(time = result)
+      false_df = rbind(data.frame(result, group = count), false_df)
+    }
+    else{
+    }
+  }
+}
+
+false_df
+dim(false_df)
+ggplot(false_df, aes(time)) + 
+  geom_histogram()
+
+false_df$time = as.POSIXct(false_df$time)
+false_df$date = as.Date(false_df$time)
+false_df = false_df[!is.na(false_df$time),]
+
+nrow(false_df)
+
+colnames(false_df) = c("timestamp", "group", "date")
+
+false_df2 = false_df |>
+  left_join(dplyr::select(hi_fvg, -group), join_by(timestamp == timestamp))  |>
+  select(timestamp, group, open, close, low, high) 
+
+false_df3 = false_df2 |>
+  group_by(group) |>
+  summarise(n = n(), max = max(high), min = min(low), size = max - min)
+
+false_df3
+
+ggplot(false_df3, aes(n)) + 
+  geom_histogram()
+
+ggplot(true_df3, aes(n)) + 
+  geom_histogram()
+
+ggplot(false_df3, aes(size)) + 
+  geom_histogram()
+
+ggplot(true_df3, aes(size)) + 
+  geom_histogram()
+
+ggplot(false_df3, aes(n, size)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+table(false_df3$n)
+
+false_df3$status = FALSE
+true_df3$status = TRUE
+fin_df = rbind(false_df3, dplyr::select(true_df3, -depth))
+
+fin_df

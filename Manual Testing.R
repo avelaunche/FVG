@@ -9,7 +9,7 @@ hi_fvg$date
 dates
 dates[1]
 hi = a[y,]
-for (x in 41){
+for (x in 1){
   b = c()
   day1 = filter(hi_fvg, date == dates[x])
   print(day1)
@@ -17,7 +17,8 @@ for (x in 41){
   a = filter(day1, bullish_fvg == TRUE)
   target_plot(day1, a[1,])
   for (y in 1:nrow(a)){
-    result = analyze_bull_fvg_one_to_one(a[y,], day1)
+    result = analyze_bull_fvg_one_to_one_return_type(a[y,], day1)
+    analyze_bull_fvg_extract_box_false(a[y,], day1)
     print(result)
     b = c(b, result)
   }
